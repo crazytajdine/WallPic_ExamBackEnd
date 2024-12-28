@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model categories {
+  id   Int    @id @default(autoincrement())
+  name String @unique(map: "name") @db.VarChar(50)
+}
+
+model drawings {
+  id          Int       @id @default(autoincrement())
+  user_id     Int
+  category_id Int
+  name        String    @db.VarChar(100)
+  image_url   String    @db.VarChar(255)
+  created_at  DateTime? @default(now()) @db.Timestamp(0)
+
+  @@index([category_id], map: "category_id")
+  @@index([user_id], map: "user_id")
+}
+
+model users {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique(map: "username") @db.VarChar(50)
+  email         String    @unique(map: "email") @db.VarChar(100)
+  password_hash String    @db.VarChar(255)
+  created_at    DateTime? @default(now()) @db.Timestamp(0)
+}
+
+model votes {
+  id         Int             @id @default(autoincrement())
+  user_id    Int
+  drawing_id Int
+  vote_type  votes_vote_type
+  created_at DateTime?       @default(now()) @db.Timestamp(0)
+
+  @@unique([user_id, drawing_id], map: "unique_vote")
+  @@index([drawing_id], map: "drawing_id")
+}
+
+enum votes_vote_type {
+  up
+  down
+}
