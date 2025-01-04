@@ -33,13 +33,9 @@ const Navbar: React.FC<NavbarProps> = ({ user, loading }) => {
     <nav className="flex justify-between p-4 bg-gray-200 dark:bg-gray-800">
       <div className="flex space-x-4">
         <Link href="/">Home</Link>
-        {user && <Link href="/create">Create Drawing</Link>}
       </div>
       <div className="flex items-center space-x-4">
-        <button
-          onClick={toggleDarkMode}
-          className="text-gray-800 dark:text-gray-200"
-        >
+        <button onClick={toggleDarkMode}>
           {darkMode ? "Light Mode" : "Dark Mode"}
         </button>
         {!loading &&

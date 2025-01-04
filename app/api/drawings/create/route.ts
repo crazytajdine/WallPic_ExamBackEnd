@@ -6,8 +6,8 @@ import { z } from "zod";
 
 const createDrawingSchema = z.object({
   name: z.string().min(1),
-  categoryId: z.number(),
-  drawingUrl: z.string().url(),
+  category_id: z.number(),
+  image_url: z.string().url(),
 });
 
 export async function POST(request: NextRequest) {
@@ -25,13 +25,13 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const parsed = createDrawingSchema.parse(body);
-    const { name, categoryId, drawingUrl } = parsed;
+    const { name, category_id, image_url } = parsed;
 
     const drawing = await prisma.drawings.create({
       data: {
         name,
-        category_id: categoryId,
-        image_url: drawingUrl,
+        category_id,
+        image_url,
         user_id: decoded.userId,
       },
     });

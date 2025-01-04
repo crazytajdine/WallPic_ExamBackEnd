@@ -22,6 +22,7 @@ import {
   FaPaintBrush, // New Paint Brush Icon
 } from "react-icons/fa";
 import BrushSizeSlider from "./BrushSizeSlider";
+import { Drawing } from "@/app/page";
 
 interface RGBA {
   r: number;
@@ -33,6 +34,7 @@ interface RGBA {
 interface PaintBoardModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAddDrawing: (newDrawing: Drawing) => void;
 }
 
 const predefinedColors: string[] = [
@@ -54,6 +56,7 @@ type Tool = "brush" | "eraser" | "paintBucket";
 const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
   isOpen,
   onClose,
+  onAddDrawing,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -66,6 +69,24 @@ const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
   const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
   const maxUndoStackSize = 20;
   const backgroundColor = "#FFFFFF"; // Define the canvas background color
+
+  const handleSubmit = () => {
+    axios
+      .post("/api/drawings/create", {
+        name: exportTitle,
+        category_id: 1,
+        image_url: canvasRef.current?.toDataURL("image/png"),
+      })
+      .then((response) => {
+        if (response.status == 201) {
+          onClose();
+          onAddDrawing(response.data);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
 
   // Initialize canvas context
   const getCanvasContext = (): CanvasRenderingContext2D | null => {
@@ -169,7 +190,7 @@ const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
     ctx.moveTo(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
     if (selectedTool === "paintBucket") {
       saveState();
-      usePaintBucket(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
+      doPaintBucket(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
       setPainting(false);
     } else {
       saveState();
@@ -299,7 +320,7 @@ const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
   };
 
   // Paint bucket functionality
-  const usePaintBucket = (x: number, y: number) => {
+  const doPaintBucket = (x: number, y: number) => {
     const ctx = getCanvasContext();
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
@@ -357,31 +378,6 @@ const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
   // Check if two colors match
   const colorsMatch = (c1: RGBA, c2: RGBA): boolean => {
     return c1.r === c2.r && c1.g === c2.g && c1.b === c2.b && c1.a === c2.a;
-  };
-
-  // Export canvas as image and send via POST request
-  const exportCanvas = async () => {
-    if (!exportTitle.trim()) {
-      alert("Please enter a title before exporting.");
-      return;
-    }
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const dataURL = canvas.toDataURL("image/png");
-
-    try {
-      const response = await axios.post("/api/export", {
-        name: exportTitle,
-        image: dataURL,
-      });
-      alert("Export successful!");
-      console.log(response.data);
-      onClose(); // Close the modal after successful export
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert("Export failed!");
-    }
   };
 
   return (
@@ -508,7 +504,7 @@ const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
                       title="Enter Title"
                     />
                     <button
-                      onClick={exportCanvas}
+                      onClick={handleSubmit}
                       className="px-4 py-2 rounded bg-green-200 hover:bg-green-300 flex items-center justify-center"
                       title="Export"
                     >

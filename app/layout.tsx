@@ -2,8 +2,8 @@
 "use client";
 
 import "./globals.css";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import { useEffect, useState } from "react";
 import axios from "axios";
 

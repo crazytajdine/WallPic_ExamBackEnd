@@ -1,50 +1,55 @@
-"use client";
 // components/DrawingGrid.tsx
-import { useState, useEffect } from "react";
-import axios from "axios";
+"use client";
+
+import React from "react";
 import VoteButtons from "./VoteButtons";
 
 interface Drawing {
   id: number;
   name: string;
-  drawingUrl: string;
+  image_url: string;
   votes: number;
   user: { username: string };
 }
 
 interface DrawingGridProps {
-  categoryId?: number | null;
+  drawings: Drawing[];
+  onVote: () => void; // Function to refresh drawings after a vote
 }
 
-const DrawingGrid: React.FC<DrawingGridProps> = ({ categoryId }) => {
-  const [drawings, setDrawings] = useState<Drawing[]>([]);
-
-  const fetchDrawings = () => {
-    const url = categoryId
-      ? `/api/drawings?categoryId=${categoryId}`
-      : "/api/drawings";
-    axios.get(url).then((res) => setDrawings(res.data));
-  };
-
-  useEffect(() => {
-    fetchDrawings();
-  }, [categoryId]);
+const DrawingGrid: React.FC<DrawingGridProps> = ({ drawings, onVote }) => {
+  if (drawings.length === 0) {
+    return <p>No drawings found.</p>;
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {drawings.map((drawing) => (
-        <div key={drawing.id} className="border p-2 rounded shadow">
+        <div
+          key={drawing.id}
+          className="border p-4 rounded shadow flex flex-col"
+        >
+          {/* Image */}
           <img
-            src={drawing.drawingUrl}
+            src={drawing.image_url}
             alt={drawing.name}
-            className="w-full h-48 object-cover"
+            className="w-full h-48 object-cover rounded"
           />
-          <h3 className="mt-2 text-lg">{drawing.name}</h3>
+
+          {/* Name and Vote Count Container */}
+          <div className="flex justify-between items-center mt-2">
+            <h3 className="text-lg font-semibold">{drawing.name}</h3>
+            <span className="text-sm text-gray-600">{drawing.votes} Votes</span>
+          </div>
+
+          {/* Author */}
           <p className="text-sm text-gray-600">By {drawing.user?.username}</p>
+
+          {/* Vote Buttons */}
           <VoteButtons
             drawingId={drawing.id}
             currentVotes={drawing.votes}
-            onVote={fetchDrawings}
+            onVote={onVote} // Pass the onVote handler from props
           />
         </div>
       ))}

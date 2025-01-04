@@ -28,9 +28,6 @@ export async function POST(request: Request) {
     const isValid = await bcrypt.compare(password, user.password_hash);
 
     if (!isValid) {
-      console.log(password);
-      bcrypt.hash(password, 10).then((hash) => console.log(hash));
-      console.log(user.password_hash);
       return NextResponse.json(
         { message: "Invalid credentials password" },
         { status: 401 }
