@@ -12,8 +12,9 @@ export interface Drawing {
   id: number;
   name: string;
   image_url: string;
-  votes: number;
-  user: { username: string };
+  user: string;
+  upvoteCount: number;
+  downvoteCount: number;
 }
 
 const MainPage = () => {
@@ -98,9 +99,7 @@ const MainPage = () => {
   // Initial fetch based on URL query params
   useEffect(() => {
     fetchDrawings(categoryId, searchQuery);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once on mount
-
+  }, []);
   return (
     <div className="p-4">
       <SearchBar

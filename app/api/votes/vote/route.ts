@@ -6,7 +6,7 @@ import { z } from "zod";
 
 const voteSchema = z.object({
   drawingId: z.number(),
-  voteType: z.enum(["upvote", "downvote"]),
+  voteType: z.enum(["up", "down"]),
 });
 
 export async function POST(request: Request) {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     // Check if user has already voted on this drawing
     const existingVote = await prisma.votes.findFirst({
-      where: { user_id: decoded.userId, drawing_id:drawingId },
+      where: { user_id: decoded.userId, drawing_id: drawingId },
     });
 
     if (existingVote) {
@@ -39,16 +39,9 @@ export async function POST(request: Request) {
     await prisma.votes.create({
       data: {
         user_id: decoded.userId,
-        drawing_id:drawingId,
-        vote_type:voteType,
+        drawing_id: drawingId,
+        vote_type: voteType,
       },
-    });
-
-    // Update drawing votes
-    const voteChange = voteType === "upvote" ? 1 : -1;
-    await prisma.drawings.update({
-      where: { id: drawingId },
-      data: { votes: { increment: voteChange } },
     });
 
     return NextResponse.json({ message: "Vote recorded" }, { status: 200 });

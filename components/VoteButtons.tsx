@@ -3,27 +3,26 @@
 
 import axios from "axios";
 import { useState, useEffect } from "react";
+import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
 
 interface VoteButtonsProps {
   drawingId: number;
-  currentVotes: number;
-  onVote: () => void;
+  upvotes: number;
+  downvotes: number;
+  onVote: () => void; // Function to refresh drawings after a vote
 }
 
 interface UserVoteResponse {
-  voteType: "upvote" | "downvote" | null;
+  voteType: "up" | "down" | null;
 }
 
 const VoteButtons: React.FC<VoteButtonsProps> = ({
   drawingId,
-  currentVotes,
+  upvotes,
+  downvotes,
   onVote,
 }) => {
-  const [votes, setVotes] = useState<number>(currentVotes);
-  const [hasVoted, setHasVoted] = useState<boolean>(false);
-  const [userVoteType, setUserVoteType] = useState<
-    "upvote" | "downvote" | null
-  >(null);
+  const [userVote, setUserVote] = useState<"up" | "down" | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,8 +44,7 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
           }
         );
         if (response.data.voteType) {
-          setHasVoted(true);
-          setUserVoteType(response.data.voteType);
+          setUserVote(response.data.voteType);
         }
       } catch (err) {
         console.error("Error fetching user vote:", err);
@@ -57,12 +55,11 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
     fetchUserVote();
   }, [drawingId]);
 
-  const handleVote = async (type: "upvote" | "downvote") => {
+  const handleVote = async (type: "up" | "down") => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      alert("Please log in to vote.");
-      return;
-    }
+    console.log(token);
+    // Prevent multiple voting
+    if (userVote === type) return;
 
     setIsLoading(true);
     setError(null);
@@ -76,20 +73,16 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `${token}`,
           },
         }
       );
 
-      // Optimistically update the votes
-      setVotes((prevVotes) =>
-        type === "upvote" ? prevVotes + 1 : prevVotes - 1
-      );
-      setHasVoted(true);
-      setUserVoteType(type);
-
-      // Trigger parent to refresh drawings
+      // Optimistically update the vote counts
       onVote();
+
+      // Update the user's vote state
+      setUserVote(type);
     } catch (error: any) {
       console.error("Error voting:", error);
       setError(error.response?.data?.message || "Error voting");
@@ -99,33 +92,31 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
   };
 
   return (
-    <div className="mt-2 flex items-center space-x-2">
-      <button
-        onClick={() => handleVote("upvote")}
-        disabled={hasVoted || isLoading}
-        className={`px-3 py-1 rounded ${
-          hasVoted
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-green-500 hover:bg-green-600 text-white"
-        }`}
-        title="Upvote"
-      >
-        Upvote
-      </button>
-      <span>{votes}</span>
-      <button
-        onClick={() => handleVote("downvote")}
-        disabled={hasVoted || isLoading}
-        className={`px-3 py-1 rounded ${
-          hasVoted
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-red-500 hover:bg-red-600 text-white"
-        }`}
-        title="Downvote"
-      >
-        Downvote
-      </button>
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+    <div className="flex items-center space-x-4">
+      {/* Upvotes */}
+      <div className="flex items-center text-green-600">
+        <button
+          className="mr-1"
+          onClick={() => handleVote("up")}
+          title="up"
+          aria-label="up"
+        >
+          <FaThumbsUp />
+        </button>
+        <span>{upvotes}</span>
+      </div>
+      {/* Downvotes */}
+      <div className="flex items-center text-red-600">
+        <button
+          className="mr-1"
+          title="Down"
+          onClick={() => handleVote("down")}
+          aria-label="Down"
+        >
+          <FaThumbsDown className="mr-1" />
+        </button>
+        <span>{downvotes}</span>
+      </div>
     </div>
   );
 };

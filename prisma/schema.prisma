@@ -19,17 +19,20 @@ model drawings {
   name        String    @db.VarChar(100)
   image_url   String    @db.VarChar(255)
   created_at  DateTime? @default(now()) @db.Timestamp(0)
+  votes       votes[]
+  user        users     @relation(fields: [user_id], references: [id])
 
   @@index([category_id], map: "category_id")
   @@index([user_id], map: "user_id")
 }
 
 model users {
-  id            Int       @id @default(autoincrement())
-  username      String    @unique(map: "username") @db.VarChar(50)
-  email         String    @unique(map: "email") @db.VarChar(100)
-  password_hash String    @db.VarChar(255)
-  created_at    DateTime? @default(now()) @db.Timestamp(0)
+  id            Int        @id @default(autoincrement())
+  username      String     @unique(map: "username") @db.VarChar(50)
+  email         String     @unique(map: "email") @db.VarChar(100)
+  password_hash String     @db.VarChar(255)
+  created_at    DateTime?  @default(now()) @db.Timestamp(0)
+  drawings      drawings[]
 }
 
 model votes {
@@ -38,6 +41,8 @@ model votes {
   drawing_id Int
   vote_type  votes_vote_type
   created_at DateTime?       @default(now()) @db.Timestamp(0)
+
+  drawings drawings? @relation(fields: [drawing_id], references: [id])
 
   @@unique([user_id, drawing_id], map: "unique_vote")
   @@index([drawing_id], map: "drawing_id")
