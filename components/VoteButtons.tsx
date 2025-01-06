@@ -1,94 +1,50 @@
 // components/VoteButtons.tsx
 "use client";
 
+import { votes_vote_type } from "@prisma/client";
 import axios from "axios";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
 
 interface VoteButtonsProps {
   drawingId: number;
   upvotes: number;
   downvotes: number;
-  onVote: () => void; // Function to refresh drawings after a vote
-}
-
-interface UserVoteResponse {
-  voteType: "up" | "down" | null;
+  voted: votes_vote_type | null;
 }
 
 const VoteButtons: React.FC<VoteButtonsProps> = ({
   drawingId,
   upvotes,
   downvotes,
-  onVote,
+  voted,
 }) => {
-  const [userVote, setUserVote] = useState<"up" | "down" | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  const [upvotesCount, setUpvotesCount] = useState<number>(upvotes);
+  const [downvotesCount, setDownvotesCount] = useState<number>(downvotes);
+  const [userVote, setUserVote] = useState<votes_vote_type | null>(voted);
 
-  // Fetch user's vote status on component mount
-  useEffect(() => {
-    const fetchUserVote = async () => {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        return;
-      }
-
-      try {
-        const response = await axios.get<UserVoteResponse>(
-          `/api/votes/${drawingId}/user`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        if (response.data.voteType) {
-          setUserVote(response.data.voteType);
-        }
-      } catch (err) {
-        console.error("Error fetching user vote:", err);
-        // Optionally, handle errors here
-      }
-    };
-
-    fetchUserVote();
-  }, [drawingId]);
-
-  const handleVote = async (type: "up" | "down") => {
-    const token = localStorage.getItem("token");
-    console.log(token);
-    // Prevent multiple voting
-    if (userVote === type) return;
-
-    setIsLoading(true);
-    setError(null);
-
+  const handleVote = async (type: votes_vote_type) => {
     try {
-      await axios.post(
+      const res = await axios.post(
         "/api/votes/vote",
         {
           drawingId,
           voteType: type,
         },
         {
-          headers: {
-            Authorization: `${token}`,
-          },
+          withCredentials: true,
         }
       );
-
-      // Optimistically update the vote counts
-      onVote();
-
-      // Update the user's vote state
-      setUserVote(type);
-    } catch (error: any) {
-      console.error("Error voting:", error);
-      setError(error.response?.data?.message || "Error voting");
-    } finally {
-      setIsLoading(false);
-    }
+      if (res.status === 200) {
+        const { countdown, countup, typenew } = calculateCounts({
+          current: type,
+          old: userVote,
+        });
+        setDownvotesCount(Number(downvotesCount) + countdown);
+        setUpvotesCount(Number(upvotesCount) + countup);
+        setUserVote(typenew);
+      }
+    } catch {}
   };
 
   return (
@@ -101,9 +57,9 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
           title="up"
           aria-label="up"
         >
-          <FaThumbsUp />
+          <FaThumbsUp className={userVote == "up" ? "text-green-900" : ""} />
         </button>
-        <span>{upvotes}</span>
+        <span>{upvotesCount}</span>
       </div>
       {/* Downvotes */}
       <div className="flex items-center text-red-600">
@@ -113,12 +69,48 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
           onClick={() => handleVote("down")}
           aria-label="Down"
         >
-          <FaThumbsDown className="mr-1" />
+          <FaThumbsDown className={userVote == "down" ? "text-red-900" : ""} />
         </button>
-        <span>{downvotes}</span>
+        <span>{downvotesCount}</span>
       </div>
     </div>
   );
 };
 
 export default VoteButtons;
+function calculateCounts({
+  current,
+  old,
+}: {
+  current: votes_vote_type | null;
+  old: votes_vote_type | null;
+}) {
+  let countup = 0;
+  let countdown = 0;
+  let typenew = current;
+  if (old === null) {
+    if (current === "up") {
+      countup = 1;
+      countdown = 0;
+    } else if (current === "down") {
+      countup = 0;
+      countdown = 1;
+    }
+  } else if (current === "up" && old === "up") {
+    countup = -1;
+    countdown = 0;
+    typenew = null;
+  } else if (current === "up" && old === "down") {
+    countup = 1;
+    countdown = -1;
+  } else if (current === "down" && old === "up") {
+    countup = -1;
+    countdown = 1;
+  } else if (current === "down" && old === "down") {
+    countup = 0;
+    countdown = -1;
+    typenew = null;
+  }
+
+  return { countup, countdown, typenew };
+}

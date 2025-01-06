@@ -4,6 +4,7 @@
 import axios from "axios";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { get } from "http";
 
 const LoginPage = () => {
   const router = useRouter();
@@ -18,10 +19,9 @@ const LoginPage = () => {
     e.preventDefault();
     setErrors([]);
     try {
-      const response = await axios.post("/api/auth/login", form, {
+      await axios.post("/api/auth/login", form, {
         withCredentials: true, // To accept and send cookies
       });
-      alert(response.data.message);
       router.push("/");
     } catch (error: any) {
       setErrors(

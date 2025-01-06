@@ -4,10 +4,8 @@ import type { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 
 export function middleware(request: NextRequest) {
-  console.log("middleman");
   const protectedRoutes = ["/api/drawings/create", "/api/votes/vote"];
   const { pathname } = request.nextUrl;
-
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
     const token = request.cookies.get("token")?.value || "";
 
@@ -18,7 +16,13 @@ export function middleware(request: NextRequest) {
     }
 
     try {
-      jwt.verify(token, process.env.JWT_SECRET!);
+      console.log(jwt.verify(token, process.env.JWT_SECRET!));
+      if (!jwt.verify(token, process.env.JWT_SECRET!)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/login";
+        return NextResponse.redirect(url);
+      }
+
       return NextResponse.next();
     } catch {
       const url = request.nextUrl.clone();
@@ -31,5 +35,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/drawings/create", "/api/votes/vote"],
+  matcher: [],
 };

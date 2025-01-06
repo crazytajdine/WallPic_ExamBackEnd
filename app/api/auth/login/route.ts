@@ -51,7 +51,6 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: "/",
     });
-
     return response;
   } catch (error) {
     if (error instanceof z.ZodError) {

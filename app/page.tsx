@@ -7,6 +7,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import SearchBar from "@/components/SearchBar";
 import DrawingGrid from "@/components/DrawingGrid";
 import PaintBoardModal from "@/components/DrawingBoard";
+import { votes_vote_type } from "@prisma/client";
 
 export interface Drawing {
   id: number;
@@ -15,6 +16,7 @@ export interface Drawing {
   user: string;
   upvoteCount: number;
   downvoteCount: number;
+  voted : votes_vote_type | null;
 }
 
 const MainPage = () => {
@@ -48,6 +50,7 @@ const MainPage = () => {
           categoryId: selectedCategoryId,
           query: query,
         },
+        withCredentials: true,
       });
       setSearchResults(response.data);
     } catch (err) {
