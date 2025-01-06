@@ -1,3 +1,4 @@
+// components/DrawingCard.tsx
 import React from "react";
 import VoteButtons from "./VoteButtons";
 import { Drawing } from "@/app/page";
@@ -6,11 +7,10 @@ interface DrawingCardProps {
   drawing: Drawing;
 }
 
-export default function DrawingCard({ drawing }: DrawingCardProps) {
+const DrawingCard: React.FC<DrawingCardProps> = ({ drawing }) => {
   return (
     <div
-      key={drawing.id}
-      className="p-4 rounded-lg shadow-lg  bg-white flex flex-col"
+      className="p-4 rounded-lg shadow-lg bg-white flex flex-col"
       style={{
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
       }}
@@ -19,7 +19,7 @@ export default function DrawingCard({ drawing }: DrawingCardProps) {
       <img
         src={drawing.image_url}
         alt={drawing.name}
-        className="w-full border-2 border-black object-fill rounded-md"
+        className="w-full border-2 border-black object-fill rounded-md pointer-events-none"
       />
 
       {/* Name and Vote Count Container */}
@@ -31,7 +31,7 @@ export default function DrawingCard({ drawing }: DrawingCardProps) {
           drawingId={drawing.id}
           upvotes={drawing.upvoteCount}
           downvotes={drawing.downvoteCount}
-          voted = {drawing.voted}
+          voted={drawing.voted}
         />
       </div>
 
@@ -39,4 +39,6 @@ export default function DrawingCard({ drawing }: DrawingCardProps) {
       <p className="text-sm text-gray-600 mt-1">{drawing.user}</p>
     </div>
   );
-}
+};
+
+export default DrawingCard;

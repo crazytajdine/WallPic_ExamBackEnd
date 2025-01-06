@@ -37,9 +37,9 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className="flex flex-col min-h-screen">
+      <body className=" min-h-screen">
         <Navbar user={user} loading={loading} />
-        <main className="flex-grow container mx-auto p-4">{children}</main>
+        <main className=" w-full ">{children}</main>
         <Footer />
       </body>
     </html>

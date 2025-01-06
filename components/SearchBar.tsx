@@ -14,6 +14,8 @@ interface SearchBarProps {
   onOpenPaintBoard: () => void;
   initialCategoryId: number | null;
   initialSearchQuery: string;
+  toggleMode: () => void;
+  isDragMode: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -21,6 +23,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onOpenPaintBoard,
   initialCategoryId,
   initialSearchQuery,
+  toggleMode,
+  isDragMode,
 }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryInput, setCategoryInput] = useState<string>("");
@@ -127,7 +131,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col space-y-4">
+    <div className="flex flex-col w-full space-y-4">
       {/* Category Autocomplete Input */}
       <div className="relative" ref={suggestionsRef}>
         <input
@@ -140,7 +144,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         />
         {isSuggestionsVisible &&
           (filteredCategories.length > 0 || categoryInput.trim() !== "") && (
-            <div className="absolute z-10 w-full bg-white border rounded shadow-md max-h-60 overflow-y-auto">
+            <div className="absolute z-10 w-full bg-white border rounded shadow-md    overflow-y-auto">
               {filteredCategories.map((cat) => (
                 <div
                   key={cat.id}
@@ -168,7 +172,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       </div>
 
       {/* Drawing Search and Draw Button */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2 ">
         <input
           type="text"
           placeholder="Search drawings..."
@@ -177,10 +181,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
           className="p-2 border rounded flex-grow"
         />
         <button
-          onClick={handleDrawingSearch}
-          className="p-2 bg-blue-500 text-white rounded"
+          onClick={toggleMode}
+          className="ml-4 p-2 bg-gray-800 text-white rounded hover:bg-gray-700"
         >
-          Search
+          {isDragMode ? "Switch to Grid View" : "Switch to Drag Mode"}
         </button>
         {selectedCategory && (
           <button

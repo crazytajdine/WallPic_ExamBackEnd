@@ -8,6 +8,7 @@ import SearchBar from "@/components/SearchBar";
 import DrawingGrid from "@/components/DrawingGrid";
 import PaintBoardModal from "@/components/DrawingBoard";
 import { votes_vote_type } from "@prisma/client";
+import DrawingGridDrag from "@/components/DrawingGridDrag";
 
 export interface Drawing {
   id: number;
@@ -16,7 +17,7 @@ export interface Drawing {
   user: string;
   upvoteCount: number;
   downvoteCount: number;
-  voted : votes_vote_type | null;
+  voted: votes_vote_type | null;
 }
 
 const MainPage = () => {
@@ -36,6 +37,9 @@ const MainPage = () => {
   const [isPaintBoardOpen, setIsPaintBoardOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // New state for toggling between modes
+  const [isDragMode, setIsDragMode] = useState<boolean>(true);
 
   // Function to fetch drawings based on categoryId and searchQuery
   const fetchDrawings = async (
@@ -89,36 +93,45 @@ const MainPage = () => {
     setIsPaintBoardOpen(false);
   };
 
-  // Handler to refresh drawings after a vote
-  const handleVote = () => {
-    fetchDrawings(categoryId, searchQuery);
-  };
-
   // Handler to add a new drawing to the grid
   const handleAddDrawing = (newDrawing: Drawing) => {
     setSearchResults((prev) => [newDrawing, ...prev]);
+  };
+
+  // Handler to toggle between modes
+  const toggleMode = () => {
+    setIsDragMode((prev) => !prev);
   };
 
   // Initial fetch based on URL query params
   useEffect(() => {
     fetchDrawings(categoryId, searchQuery);
   }, []);
+
   return (
-    <div className="p-4">
-      <SearchBar
-        onSearch={handleSearch}
-        onOpenPaintBoard={handleOpenPaintBoard}
-        initialCategoryId={categoryId}
-        initialSearchQuery={searchQuery}
-      />
+    <div className="p-4 w-full">
+      <div className="flex justify-between items-center mb-4">
+        <SearchBar
+          onSearch={handleSearch}
+          onOpenPaintBoard={handleOpenPaintBoard}
+          initialCategoryId={categoryId}
+          initialSearchQuery={searchQuery}
+          toggleMode={toggleMode}
+          isDragMode={isDragMode}
+        />
+      </div>
 
       {/* Optional: Display loading or error messages */}
       {isLoading && <p>Loading drawings...</p>}
       {error && <p className="text-red-500">{error}</p>}
 
-      {/* Render search results using DrawingGrid */}
-      <div className="mt-4">
-        <DrawingGrid drawings={searchResults} onVote={handleVote} />
+      {/* Render search results using DrawingGrid or DrawingGridDrag based on mode */}
+      <div className={`mt-4 ${isDragMode ? "w-full" : "container mx-auto"}`}>
+        {isDragMode ? (
+          <DrawingGridDrag drawings={searchResults} />
+        ) : (
+          <DrawingGrid drawings={searchResults} />
+        )}
       </div>
 
       {/* PaintBoardModal */}
