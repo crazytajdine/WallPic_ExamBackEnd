@@ -10,8 +10,7 @@ interface Category {
 }
 
 interface SearchBarProps {
-  onCategorySelect: (categoryId: number | null) => void;
-  onNameChange: (nameQuery: string) => void;
+  onSearch: (categoryId: number | null, drawingQuery: string) => void;
   onOpenPaintBoard: () => void;
   initialCategoryId: number | null;
   initialSearchQuery: string;
@@ -20,8 +19,7 @@ interface SearchBarProps {
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
-  onCategorySelect,
-  onNameChange,
+  onSearch,
   onOpenPaintBoard,
   initialCategoryId,
   initialSearchQuery,
@@ -92,12 +90,15 @@ const SearchBar: React.FC<SearchBarProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCategoryId, initialSearchQuery, categories]);
 
-  // Handle category input changes
+  // Handle category input changes with debounce
   const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCategoryInput(value);
     setSelectedCategory(null);
     setIsSuggestionsVisible(true);
+
+    // When category input changes, reset to no category selection
+    onSearch(null, drawingQuery);
   };
 
   // Handle category selection
@@ -105,7 +106,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     setSelectedCategory(category);
     setCategoryInput(category.name);
     setIsSuggestionsVisible(false);
-    onCategorySelect(category.id);
+    onSearch(category.id, drawingQuery);
   };
 
   // Handle adding a new category
@@ -120,7 +121,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       const newCategory: Category = res.data;
       setCategories((prev) => [...prev, newCategory]);
       setSelectedCategory(newCategory);
-      onCategorySelect(newCategory.id);
+      onSearch(newCategory.id, drawingQuery);
       setIsSuggestionsVisible(false);
       setCategoryInput(newCategory.name);
     } catch (error) {
@@ -129,8 +130,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
   };
 
-  // Handle name query input changes with debounce
-  const handleNameQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle drawing query input changes with debounce
+  const handleDrawingQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setDrawingQuery(value);
 
@@ -139,7 +140,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     }
 
     nameSearchTimeout.current = setTimeout(() => {
-      onNameChange(value);
+      onSearch(selectedCategory ? selectedCategory.id : null, value);
     }, 300);
   };
 
@@ -221,7 +222,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
           type="text"
           placeholder="Search drawings..."
           value={drawingQuery}
-          onChange={handleNameQueryChange}
+          onChange={handleDrawingQueryChange}
           className="p-2 border rounded flex-grow"
           aria-label="Search drawings"
         />

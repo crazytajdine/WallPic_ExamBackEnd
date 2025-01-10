@@ -34,8 +34,8 @@ const MainPage = () => {
     initialCategoryId
   );
   const [searchQuery, setSearchQuery] = useState<string>(initialSearchQuery);
-  const [allDrawings, setAllDrawings] = useState<Drawing[]>([]);
-  const [searchResults, setSearchResults] = useState<Drawing[]>([]);
+  const [allDrawings, setAllDrawings] = useState<Drawing[]>([]); // Server-fetched drawings
+  const [searchResults, setSearchResults] = useState<Drawing[]>([]); // Filtered results
   const [isPaintBoardOpen, setIsPaintBoardOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,75 +43,97 @@ const MainPage = () => {
   // State for toggling between modes
   const [isDragMode, setIsDragMode] = useState<boolean>(true);
 
-  // Function to fetch drawings based on categoryId
-  const fetchDrawingsByCategory = async (selectedCategoryId: number | null) => {
-    if (selectedCategoryId === null) {
-      setAllDrawings([]);
-      setSearchResults([]);
-      return;
-    }
-
+  // Function to fetch drawings based on categoryId (server-side)
+  const fetchDrawings = async (selectedCategoryId: number | null) => {
+    console.log("Fetching drawings for categoryId:", selectedCategoryId);
     setIsLoading(true);
     setError(null);
     try {
+      const params: any = {};
+      if (selectedCategoryId !== null) {
+        params.categoryId = selectedCategoryId;
+      }
+      // Remove 'query' parameter to handle name search client-side
       const response = await axios.get("/api/drawings", {
-        params: {
-          categoryId: selectedCategoryId,
-          // Optionally, include other params like pagination
-        },
+        params,
         withCredentials: true,
       });
+      console.log("Fetched Drawings:", response.data);
       setAllDrawings(response.data);
-      setSearchResults(response.data);
+      // Apply client-side filter if searchQuery exists
+      if (searchQuery.trim() !== "") {
+        const queryLower = searchQuery.toLowerCase();
+        const filtered = response.data.filter((drawing: Drawing) =>
+          drawing.name.toLowerCase().includes(queryLower)
+        );
+        setSearchResults(filtered);
+      } else {
+        setSearchResults(response.data);
+      }
     } catch (err) {
       console.error("Error fetching drawings:", err);
       setError("Failed to fetch drawings. Please try again.");
+      setAllDrawings([]);
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handler for category selection (server-side)
-  const handleCategorySelect = (selectedCategoryId: number | null) => {
-    console.log("Category selected:", selectedCategoryId);
-    setCategoryId(selectedCategoryId);
-    setSearchQuery(""); // Reset search query on category change
+  // Handler for search from SearchBar
+  const handleSearch = (selectedCategoryId: number | null, query: string) => {
+    console.log("Handle Search called with:", selectedCategoryId, query);
+    const categoryChanged = selectedCategoryId !== categoryId;
 
-    // Update URL query parameters
-    const params = new URLSearchParams();
-    if (selectedCategoryId) {
-      params.set("categoryId", selectedCategoryId.toString());
-    }
-    router.replace(`?${params.toString()}`);
+    if (categoryChanged) {
+      // Category changed: perform server-side fetch
+      setCategoryId(selectedCategoryId);
+      setSearchQuery(query);
 
-    // Fetch drawings for the selected category
-    fetchDrawingsByCategory(selectedCategoryId);
-  };
+      // Update URL query parameters
+      const params = new URLSearchParams();
+      if (selectedCategoryId) {
+        params.set("categoryId", selectedCategoryId.toString());
+      } else {
+        params.delete("categoryId");
+      }
+      if (query) {
+        params.set("searchQuery", query);
+      } else {
+        params.delete("searchQuery");
+      }
+      router.replace(`?${params.toString()}`);
 
-  // Handler for name input changes (client-side)
-  const handleNameChange = (nameQuery: string) => {
-    console.log("Name query changed to:", nameQuery);
-    setSearchQuery(nameQuery);
-
-    // Update URL query parameters
-    const params = new URLSearchParams();
-    if (categoryId) {
-      params.set("categoryId", categoryId.toString());
-    }
-    if (nameQuery) {
-      params.set("searchQuery", nameQuery);
-    }
-    router.replace(`?${params.toString()}`);
-
-    // Perform client-side filtering
-    if (nameQuery.trim() === "") {
-      setSearchResults(allDrawings);
+      // Fetch drawings for the selected category
+      fetchDrawings(selectedCategoryId);
     } else {
-      const queryLower = nameQuery.toLowerCase();
-      const filtered = allDrawings.filter((drawing) =>
-        drawing.name.toLowerCase().includes(queryLower)
-      );
-      setSearchResults(filtered);
+      // Only query changed: perform client-side filtering
+      setSearchQuery(query);
+
+      // Update URL query parameters
+      const params = new URLSearchParams();
+      if (selectedCategoryId) {
+        params.set("categoryId", selectedCategoryId.toString());
+      } else {
+        params.delete("categoryId");
+      }
+      if (query) {
+        params.set("searchQuery", query);
+      } else {
+        params.delete("searchQuery");
+      }
+      router.replace(`?${params.toString()}`);
+
+      // Perform client-side filtering
+      if (query.trim() === "") {
+        setSearchResults(allDrawings);
+      } else {
+        const queryLower = query.toLowerCase();
+        const filtered = allDrawings.filter((drawing: Drawing) =>
+          drawing.name.toLowerCase().includes(queryLower)
+        );
+        setSearchResults(filtered);
+      }
     }
   };
 
@@ -128,6 +150,7 @@ const MainPage = () => {
   // Handler to add a new drawing to the grid
   const handleAddDrawing = (newDrawing: Drawing) => {
     setAllDrawings((prev) => [newDrawing, ...prev]);
+
     // Apply current search query to include/exclude the new drawing
     if (
       searchQuery.trim() === "" ||
@@ -144,18 +167,15 @@ const MainPage = () => {
 
   // Initial fetch based on URL query params
   useEffect(() => {
-    if (initialCategoryId) {
-      fetchDrawingsByCategory(initialCategoryId);
-    }
+    fetchDrawings(categoryId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialCategoryId]);
+  }, []);
 
   return (
     <div className="p-4 w-full">
       <div className="flex justify-between items-center mb-4">
         <SearchBar
-          onCategorySelect={handleCategorySelect}
-          onNameChange={handleNameChange}
+          onSearch={handleSearch}
           onOpenPaintBoard={handleOpenPaintBoard}
           initialCategoryId={categoryId}
           initialSearchQuery={searchQuery}
