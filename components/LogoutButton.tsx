@@ -12,7 +12,6 @@ const LogoutButton = () => {
 
     try {
       await axios.post('/api/auth/logout', {}, { withCredentials: true });
-      alert('Logged out successfully');
       router.push('/login');
     } catch (error: any) {
       alert(error.response?.data?.message || 'Error logging out');

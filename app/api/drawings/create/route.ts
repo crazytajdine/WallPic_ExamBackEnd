@@ -1,54 +1,97 @@
-// app/api/drawings/create/route.ts
+// import necessary modules
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
-import { z } from "zod";
 
-const createDrawingSchema = z.object({
-  name: z.string().min(1),
-  category_id: z.number(),
-  image_url: z.string().url(),
-});
+// Define the shape of your request body
+interface CreateDrawingBody {
+  name: string;
+  image_url: string;
+  category_id: number;
+}
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const token = request.cookies.get("token")?.value || "";
+    // Extract the token from cookies
+    const token = req.cookies.get("token")?.value || "";
 
     if (!token) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.redirect("/login");
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      userId: number;
-      email: string;
-    };
+    // Verify JWT token
+    let userId: number;
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      userId = (decoded as { userId: number }).userId;
+    } catch (err) {
+      console.error("JWT Verification Error:", err);
+      return NextResponse.redirect("/login");
+    }
 
-    const body = await request.json();
-    const parsed = createDrawingSchema.parse(body);
-    const { name, category_id, image_url } = parsed;
+    // Parse the request body
+    const body: CreateDrawingBody = await req.json();
 
-    const drawing = await prisma.drawings.create({
-      data: {
-        name,
-        category_id,
-        image_url,
-        user_id: decoded.userId,
-      },
-    });
+    const { name, image_url, category_id } = body;
 
-    return NextResponse.json(drawing, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
+    // Validate input (you can add more validations as needed)
+    if (!name || !image_url || !category_id) {
       return NextResponse.json(
-        { message: "Invalid data", errors: error.errors },
+        { error: "Missing required fields." },
         { status: 400 }
       );
     }
-    if (error instanceof jwt.JsonWebTokenError) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-    }
+
+    // Create the new drawing
+    const newDrawing = await prisma.drawings.create({
+      data: {
+        name,
+        image_url,
+        category_id,
+        user_id: userId, // assuming you have a user_id field
+      },
+      select: {
+        id: true,
+        name: true,
+        image_url: true,
+        created_at: true,
+        user: {
+          select: {
+            username: true,
+          },
+        },
+        votes: {
+          select: {
+            vote_type: true,
+            user_id: true,
+          },
+        },
+      },
+    });
+
+    // Since it's a new drawing, votes should be empty
+    // Therefore, upvoteCount and downvoteCount are 0
+    const processedDrawing = {
+      id: newDrawing.id,
+      name: newDrawing.name,
+      user: newDrawing.user.username,
+      image_url: newDrawing.image_url,
+      created_at: newDrawing.created_at,
+      upvoteCount: 0,
+      downvoteCount: 0,
+      voted: null, // No votes yet
+    };
+
+    return NextResponse.json(processedDrawing, { status: 201 });
+  } catch (error: unknown) {
+    console.error("POST /api/drawings Error:", error);
+
+    // Safely extract error message
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred";
+
     return NextResponse.json(
-      { message: "Internal Server Error" },
+      { error: "Internal Server Error", details: errorMessage },
       { status: 500 }
     );
   }

@@ -18,6 +18,7 @@ export interface Drawing {
   upvoteCount: number;
   downvoteCount: number;
   voted: votes_vote_type | null;
+  categoryId: number; // Ensure this field exists
 }
 
 const MainPage = () => {
@@ -33,29 +34,34 @@ const MainPage = () => {
     initialCategoryId
   );
   const [searchQuery, setSearchQuery] = useState<string>(initialSearchQuery);
+  const [allDrawings, setAllDrawings] = useState<Drawing[]>([]);
   const [searchResults, setSearchResults] = useState<Drawing[]>([]);
   const [isPaintBoardOpen, setIsPaintBoardOpen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // New state for toggling between modes
+  // State for toggling between modes
   const [isDragMode, setIsDragMode] = useState<boolean>(true);
 
-  // Function to fetch drawings based on categoryId and searchQuery
-  const fetchDrawings = async (
-    selectedCategoryId: number | null,
-    query: string
-  ) => {
+  // Function to fetch drawings based on categoryId
+  const fetchDrawingsByCategory = async (selectedCategoryId: number | null) => {
+    if (selectedCategoryId === null) {
+      setAllDrawings([]);
+      setSearchResults([]);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
       const response = await axios.get("/api/drawings", {
         params: {
           categoryId: selectedCategoryId,
-          query: query,
+          // Optionally, include other params like pagination
         },
         withCredentials: true,
       });
+      setAllDrawings(response.data);
       setSearchResults(response.data);
     } catch (err) {
       console.error("Error fetching drawings:", err);
@@ -65,22 +71,48 @@ const MainPage = () => {
     }
   };
 
-  // Handler for search from SearchBar
-  const handleSearch = (selectedCategoryId: number | null, query: string) => {
+  // Handler for category selection (server-side)
+  const handleCategorySelect = (selectedCategoryId: number | null) => {
+    console.log("Category selected:", selectedCategoryId);
     setCategoryId(selectedCategoryId);
-    setSearchQuery(query);
+    setSearchQuery(""); // Reset search query on category change
 
     // Update URL query parameters
     const params = new URLSearchParams();
     if (selectedCategoryId) {
       params.set("categoryId", selectedCategoryId.toString());
     }
-    if (query) {
-      params.set("searchQuery", query);
+    router.replace(`?${params.toString()}`);
+
+    // Fetch drawings for the selected category
+    fetchDrawingsByCategory(selectedCategoryId);
+  };
+
+  // Handler for name input changes (client-side)
+  const handleNameChange = (nameQuery: string) => {
+    console.log("Name query changed to:", nameQuery);
+    setSearchQuery(nameQuery);
+
+    // Update URL query parameters
+    const params = new URLSearchParams();
+    if (categoryId) {
+      params.set("categoryId", categoryId.toString());
+    }
+    if (nameQuery) {
+      params.set("searchQuery", nameQuery);
     }
     router.replace(`?${params.toString()}`);
 
-    fetchDrawings(selectedCategoryId, query);
+    // Perform client-side filtering
+    if (nameQuery.trim() === "") {
+      setSearchResults(allDrawings);
+    } else {
+      const queryLower = nameQuery.toLowerCase();
+      const filtered = allDrawings.filter((drawing) =>
+        drawing.name.toLowerCase().includes(queryLower)
+      );
+      setSearchResults(filtered);
+    }
   };
 
   // Handler to open PaintBoardModal
@@ -95,7 +127,14 @@ const MainPage = () => {
 
   // Handler to add a new drawing to the grid
   const handleAddDrawing = (newDrawing: Drawing) => {
-    setSearchResults((prev) => [newDrawing, ...prev]);
+    setAllDrawings((prev) => [newDrawing, ...prev]);
+    // Apply current search query to include/exclude the new drawing
+    if (
+      searchQuery.trim() === "" ||
+      newDrawing.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ) {
+      setSearchResults((prev) => [newDrawing, ...prev]);
+    }
   };
 
   // Handler to toggle between modes
@@ -105,14 +144,18 @@ const MainPage = () => {
 
   // Initial fetch based on URL query params
   useEffect(() => {
-    fetchDrawings(categoryId, searchQuery);
-  }, []);
+    if (initialCategoryId) {
+      fetchDrawingsByCategory(initialCategoryId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialCategoryId]);
 
   return (
     <div className="p-4 w-full">
       <div className="flex justify-between items-center mb-4">
         <SearchBar
-          onSearch={handleSearch}
+          onCategorySelect={handleCategorySelect}
+          onNameChange={handleNameChange}
           onOpenPaintBoard={handleOpenPaintBoard}
           initialCategoryId={categoryId}
           initialSearchQuery={searchQuery}
@@ -121,9 +164,12 @@ const MainPage = () => {
         />
       </div>
 
-      {/* Optional: Display loading or error messages */}
+      {/* Display loading or error messages */}
       {isLoading && <p>Loading drawings...</p>}
       {error && <p className="text-red-500">{error}</p>}
+      {!isLoading && searchResults.length === 0 && !error && (
+        <p>No drawings found for your search criteria.</p>
+      )}
 
       {/* Render search results using DrawingGrid or DrawingGridDrag based on mode */}
       <div className={`mt-4 ${isDragMode ? "w-full" : "container mx-auto"}`}>
@@ -136,6 +182,7 @@ const MainPage = () => {
 
       {/* PaintBoardModal */}
       <PaintBoardModal
+        category_id={categoryId}
         isOpen={isPaintBoardOpen}
         onClose={handleClosePaintBoard}
         onAddDrawing={handleAddDrawing}
