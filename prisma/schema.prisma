@@ -47,6 +47,16 @@ model votes {
   @@unique([user_id, drawing_id], map: "unique_vote")
   @@index([drawing_id], map: "drawing_id")
 }
+model comments {
+  id         Int      @id @default(autoincrement())
+  comment    String   @db.Text
+  created_at DateTime @default(now()) @db.Timestamp(0)
+  user_id    Int
+  image_id   Int
+
+  @@index([image_id], map: "image_id")
+  @@index([user_id], map: "user_id")
+}
 
 enum votes_vote_type {
   up

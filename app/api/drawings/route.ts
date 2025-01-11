@@ -11,7 +11,13 @@ export async function GET(req: NextRequest) {
 
     if (!token) {
       console.log("No token found, redirecting to /login");
-      return NextResponse.redirect("/login");
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          details: "No token found in cookies.",
+        },
+        { status: 402 }
+      );
     }
 
     if (!process.env.JWT_SECRET) {

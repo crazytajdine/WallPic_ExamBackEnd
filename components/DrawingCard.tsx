@@ -5,12 +5,14 @@ import { Drawing } from "@/app/page";
 
 interface DrawingCardProps {
   drawing: Drawing;
+  onClick?: () => void; // Optional click handler
 }
 
-const DrawingCard: React.FC<DrawingCardProps> = ({ drawing }) => {
+const DrawingCard: React.FC<DrawingCardProps> = ({ drawing, onClick }) => {
   return (
     <div
-      className="p-4 rounded-lg shadow-lg bg-white flex flex-col"
+      onClick={onClick} // Attach the click handler
+      className="p-4 rounded-lg shadow-lg bg-white flex flex-col cursor-pointer"
       style={{
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
       }}
@@ -20,6 +22,7 @@ const DrawingCard: React.FC<DrawingCardProps> = ({ drawing }) => {
         src={drawing.image_url}
         alt={drawing.name}
         className="w-full border-2 border-black object-fill rounded-md pointer-events-none"
+        loading="lazy" // Add lazy loading for performance
       />
 
       {/* Name and Vote Count Container */}
