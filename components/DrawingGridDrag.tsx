@@ -103,7 +103,7 @@ const DrawingGridDrag: React.FC<DrawingGridDragProps> = ({ drawings }) => {
               dragConstraints={containerRef}
               whileTap={{ cursor: "grabbing" }}
               dragElastic={0.2}
-              onTap={() => handleTap(drawing)} // Use onTap for tap/click
+              onDoubleClick={() => handleTap(drawing)} // Use onTap for tap/click
               onDragStart={() => {
                 handleBringToFront(index);
                 isDraggingRef.current = false; // Reset dragging flag

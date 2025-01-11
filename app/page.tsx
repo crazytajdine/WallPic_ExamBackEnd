@@ -18,7 +18,7 @@ export interface Drawing {
   upvoteCount: number;
   downvoteCount: number;
   voted: votes_vote_type | null;
-  categoryId: number; // Ensure this field exists
+  categoryId: number;
 }
 
 const MainPage = () => {

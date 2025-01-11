@@ -11,7 +11,7 @@ interface DrawingCardProps {
 const DrawingCard: React.FC<DrawingCardProps> = ({ drawing, onClick }) => {
   return (
     <div
-      onClick={onClick} // Attach the click handler
+      onDoubleClick={onClick}
       className="p-4 rounded-lg shadow-lg bg-white flex flex-col cursor-pointer"
       style={{
         boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",

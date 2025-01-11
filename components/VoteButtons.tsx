@@ -56,7 +56,10 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
       <div className="flex items-center text-green-600">
         <button
           className="mr-1 focus:outline-none"
-          onClick={() => handleVote("up")}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            handleVote("up");
+          }}
           title="Upvote"
           aria-label="Upvote"
         >
@@ -70,7 +73,10 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
       <div className="flex items-center text-red-600">
         <button
           className="mr-1 focus:outline-none"
-          onClick={() => handleVote("down")}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            handleVote("down");
+          }}
           title="Downvote"
           aria-label="Downvote"
         >

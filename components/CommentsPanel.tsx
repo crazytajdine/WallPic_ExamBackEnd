@@ -5,6 +5,9 @@ import { Drawing } from "@/app/page";
 import VoteButtons from "./VoteButtons";
 
 interface Comment {
+  user: {
+    username: string;
+  };
   id: number;
   comment: string;
   created_at: string;
@@ -161,7 +164,7 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({ drawing, onClose }) => {
                     <div className="mb-3">
                       <p className="text-gray-800">{comment.comment}</p>
                       <span className="text-xs text-gray-500">
-                        User {comment.user_id} —{" "}
+                        {comment.user.username} —{" "}
                         {new Date(comment.created_at).toLocaleString()}
                       </span>
                     </div>

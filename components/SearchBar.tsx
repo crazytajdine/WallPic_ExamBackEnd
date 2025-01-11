@@ -87,7 +87,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
     if (initialSearchQuery) {
       setDrawingQuery(initialSearchQuery);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCategoryId, initialSearchQuery, categories]);
 
   // Handle category input changes with debounce

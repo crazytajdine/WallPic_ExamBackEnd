@@ -27,7 +27,10 @@ const DrawingGrid: React.FC<DrawingGridProps> = ({ drawings }) => {
           <DrawingCard
             key={drawing.id}
             drawing={drawing}
-            onClick={() => setSelectedDrawing(drawing)}
+            onClick={() => setSelectedDrawing(drawing)
+            
+
+            }
           />
         ))}
       </div>

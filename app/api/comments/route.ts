@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const comments = await prisma.comments.findMany({
+      include: { user: { select: { username: true } } },
       where: { image_id: parseInt(imageId, 10) },
       orderBy: { created_at: "desc" },
     });
@@ -54,6 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const newComment = await prisma.comments.create({
+      include: { user: { select: { username: true } } },
       data: {
         user_id: userId,
         image_id,
