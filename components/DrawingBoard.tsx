@@ -35,6 +35,7 @@ interface PaintBoardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddDrawing: (newDrawing: Drawing) => void;
+  category_id: number | null;
 }
 
 const predefinedColors: string[] = [
@@ -57,6 +58,7 @@ const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
   isOpen,
   onClose,
   onAddDrawing,
+  category_id,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ const PaintBoardModal: React.FC<PaintBoardModalProps> = ({
     axios
       .post("/api/drawings/create", {
         name: exportTitle,
-        category_id: 1,
+        category_id: category_id,
         image_url: canvasRef.current?.toDataURL("image/png"),
       })
       .then((response) => {

@@ -34,18 +34,33 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(
     null
   );
-  const [drawingQuery, setDrawingQuery] = useState<string>("");
+  const [drawingQuery, setDrawingQuery] = useState<string>(initialSearchQuery);
+  const [isCategoriesLoading, setIsCategoriesLoading] =
+    useState<boolean>(false);
+  const [categoryError, setCategoryError] = useState<string | null>(null);
 
   const suggestionsRef = useRef<HTMLDivElement>(null);
+  const nameSearchTimeout = useRef<NodeJS.Timeout | null>(null);
 
+  // Fetch categories on component mount
   useEffect(() => {
-    // Fetch categories on component mount
-    axios
-      .get("/api/categories")
-      .then((res) => setCategories(res.data))
-      .catch((error) => console.error("Error fetching categories:", error));
+    const fetchCategories = async () => {
+      setIsCategoriesLoading(true);
+      try {
+        const res = await axios.get("/api/categories");
+        setCategories(res.data);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+        setCategoryError("Failed to load categories.");
+      } finally {
+        setIsCategoriesLoading(false);
+      }
+    };
+
+    fetchCategories();
   }, []);
 
+  // Filter categories based on input
   useEffect(() => {
     if (categoryInput.trim() === "") {
       setFilteredCategories([]);
@@ -72,16 +87,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
     if (initialSearchQuery) {
       setDrawingQuery(initialSearchQuery);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCategoryId, initialSearchQuery, categories]);
 
+  // Handle category input changes with debounce
   const handleCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCategoryInput(e.target.value);
+    const value = e.target.value;
+    setCategoryInput(value);
     setSelectedCategory(null);
-    onSearch(null, drawingQuery); // Reset search when category changes
     setIsSuggestionsVisible(true);
+
+    // When category input changes, reset to no category selection
+    onSearch(null, drawingQuery);
   };
 
+  // Handle category selection
   const handleCategorySelect = (category: Category) => {
     setSelectedCategory(category);
     setCategoryInput(category.name);
@@ -89,29 +108,45 @@ const SearchBar: React.FC<SearchBarProps> = ({
     onSearch(category.id, drawingQuery);
   };
 
-  const handleAddNewCategory = () => {
+  // Handle adding a new category
+  const handleAddNewCategory = async () => {
     const newCategoryName = categoryInput.trim();
     if (newCategoryName === "") return;
 
-    // Example API call to add a new category
-    axios
-      .post("/api/categories", { name: newCategoryName })
-      .then((res) => {
-        const newCategory: Category = res.data;
-        setCategories((prev) => [...prev, newCategory]);
-        setSelectedCategory(newCategory);
-        onSearch(newCategory.id, drawingQuery);
-        setIsSuggestionsVisible(false);
-        setCategoryInput(newCategory.name);
-      })
-      .catch((error) => {
-        console.error("Error adding new category:", error);
-        // Optionally, you can display an error message to the user here
+    try {
+      const res = await axios.post("/api/categories", {
+        name: newCategoryName,
       });
+      const newCategory: Category = res.data;
+      setCategories((prev) => [...prev, newCategory]);
+      setSelectedCategory(newCategory);
+      onSearch(newCategory.id, drawingQuery);
+      setIsSuggestionsVisible(false);
+      setCategoryInput(newCategory.name);
+    } catch (error) {
+      console.error("Error adding new category:", error);
+      // Optionally, display an error message to the user
+    }
   };
 
-  const handleDrawingSearch = () => {
-    onSearch(selectedCategory ? selectedCategory.id : null, drawingQuery);
+  // Handle drawing query input changes with debounce
+  const handleDrawingQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDrawingQuery(value);
+
+    if (nameSearchTimeout.current) {
+      clearTimeout(nameSearchTimeout.current);
+    }
+
+    nameSearchTimeout.current = setTimeout(() => {
+      onSearch(selectedCategory ? selectedCategory.id : null, value);
+    }, 300);
+  };
+
+  // Handle form submission (prevent default)
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // No action needed since search is handled on input change
   };
 
   // Close suggestions when clicking outside
@@ -131,7 +166,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
   }, []);
 
   return (
-    <div className="flex flex-col w-full space-y-4">
+    <form
+      onSubmit={handleFormSubmit}
+      className="flex flex-col w-full space-y-4"
+    >
       {/* Category Autocomplete Input */}
       <div className="relative" ref={suggestionsRef}>
         <input
@@ -141,15 +179,20 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onChange={handleCategoryChange}
           onFocus={() => setIsSuggestionsVisible(true)}
           className="p-2 border rounded w-full"
+          aria-label="Search categories"
         />
+        {isCategoriesLoading && <p>Loading categories...</p>}
+        {categoryError && <p className="text-red-500">{categoryError}</p>}
         {isSuggestionsVisible &&
           (filteredCategories.length > 0 || categoryInput.trim() !== "") && (
-            <div className="absolute z-10 w-full bg-white border rounded shadow-md    overflow-y-auto">
+            <div className="absolute z-10 w-full bg-white border rounded shadow-md overflow-y-auto max-h-60">
               {filteredCategories.map((cat) => (
                 <div
                   key={cat.id}
                   onClick={() => handleCategorySelect(cat)}
                   className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
+                  role="option"
+                  aria-selected={selectedCategory?.id === cat.id}
                 >
                   {cat.name}
                 </div>
@@ -163,6 +206,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                   <div
                     onClick={handleAddNewCategory}
                     className="px-4 py-2 hover:bg-gray-200 cursor-pointer text-blue-500"
+                    role="option"
                   >
                     + Add "{categoryInput}"
                   </div>
@@ -171,31 +215,35 @@ const SearchBar: React.FC<SearchBarProps> = ({
           )}
       </div>
 
-      {/* Drawing Search and Draw Button */}
-      <div className="flex items-center space-x-2 ">
+      {/* Drawing Search and Action Buttons */}
+      <div className="flex items-center space-x-2">
         <input
           type="text"
           placeholder="Search drawings..."
           value={drawingQuery}
-          onChange={(e) => setDrawingQuery(e.target.value)}
+          onChange={handleDrawingQueryChange}
           className="p-2 border rounded flex-grow"
+          aria-label="Search drawings"
         />
+        {/* Removed Search Button */}
         <button
+          type="button"
           onClick={toggleMode}
-          className="ml-4 p-2 bg-gray-800 text-white rounded hover:bg-gray-700"
+          className="ml-2 p-2 bg-gray-800 text-white rounded hover:bg-gray-700"
         >
           {isDragMode ? "Switch to Grid View" : "Switch to Drag Mode"}
         </button>
         {selectedCategory && (
           <button
+            type="button"
             onClick={onOpenPaintBoard}
-            className="p-2 bg-green-500 text-white rounded"
+            className="p-2 bg-green-500 text-white rounded hover:bg-green-600"
           >
             Draw
           </button>
         )}
       </div>
-    </div>
+    </form>
   );
 };
 

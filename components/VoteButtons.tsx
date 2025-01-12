@@ -44,7 +44,10 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
         setUpvotesCount(Number(upvotesCount) + countup);
         setUserVote(typenew);
       }
-    } catch {}
+    } catch (error) {
+      console.error("Error voting:", error); // Log the error for debugging
+      // Optionally, implement user-facing error handling (e.g., toast notifications)
+    }
   };
 
   return (
@@ -52,24 +55,34 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
       {/* Upvotes */}
       <div className="flex items-center text-green-600">
         <button
-          className="mr-1"
-          onClick={() => handleVote("up")}
-          title="up"
-          aria-label="up"
+          className="mr-1 focus:outline-none"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            handleVote("up");
+          }}
+          title="Upvote"
+          aria-label="Upvote"
         >
-          <FaThumbsUp className={userVote == "up" ? "text-green-900" : ""} />
+          <FaThumbsUp
+            className={`w-5 h-5 ${userVote === "up" ? "text-green-900" : ""}`}
+          />
         </button>
         <span>{upvotesCount}</span>
       </div>
       {/* Downvotes */}
       <div className="flex items-center text-red-600">
         <button
-          className="mr-1"
-          title="Down"
-          onClick={() => handleVote("down")}
-          aria-label="Down"
+          className="mr-1 focus:outline-none"
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent event bubbling
+            handleVote("down");
+          }}
+          title="Downvote"
+          aria-label="Downvote"
         >
-          <FaThumbsDown className={userVote == "down" ? "text-red-900" : ""} />
+          <FaThumbsDown
+            className={`w-5 h-5 ${userVote === "down" ? "text-red-900" : ""}`}
+          />
         </button>
         <span>{downvotesCount}</span>
       </div>
@@ -78,6 +91,7 @@ const VoteButtons: React.FC<VoteButtonsProps> = ({
 };
 
 export default VoteButtons;
+
 function calculateCounts({
   current,
   old,

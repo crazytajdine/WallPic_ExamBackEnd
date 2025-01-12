@@ -1,56 +1,132 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { votes_vote_type } from "@prisma/client";
 import jwt from "jsonwebtoken";
 
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get("token")?.value || "";
+  try {
+    console.log("Received GET request for /api/drawings");
 
-  if (!token) return NextResponse.redirect("/login");
+    const token = req.cookies.get("token")?.value || "";
+    console.log("Token:", token);
 
-  const { userId } = jwt.verify(token, process.env.JWT_SECRET!) as {
-    userId: number;
-  };
-  const drawings = await prisma.$queryRaw<
-    Array<{
-      id: number;
-      name: string;
-      user: string;
-      image_url: string;
-      created_at: Date;
-      upvoteCount: number;
-      downvoteCount: number;
-      voted: votes_vote_type | null;
-    }>
-  >`
-      SELECT 
-      d.id, 
-      d.name,
-      u.username AS user, 
-      d.image_url, 
-      d.created_at,
-      
-      COUNT(CASE WHEN v.vote_type = 'up' THEN 1 END) AS upvoteCount,
-      COUNT(CASE WHEN v.vote_type = 'down' THEN 1 END) AS downvoteCount,
+    if (!token) {
+      console.log("No token found, redirecting to /login");
+      return NextResponse.json(
+        {
+          error: "Unauthorized",
+          details: "No token found in cookies.",
+        },
+        { status: 402 }
+      );
+    }
 
-      (SELECT v.vote_type 
-      FROM votes v 
-     WHERE v.drawing_id = d.id AND v.user_id = ${userId}  
-     LIMIT 1) AS voted
-     
-     FROM drawings d
-  INNER JOIN users u ON d.user_id = u.id
-  LEFT JOIN votes v ON d.id = v.drawing_id
-  GROUP BY d.id, d.name, u.username, d.image_url, d.created_at
-  ORDER BY (COUNT(CASE WHEN v.vote_type = 'up' THEN 1 END) - COUNT(CASE WHEN v.vote_type = 'down' THEN 1 END)) DESC, d.created_at DESC;
-  `;
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not defined in environment variables.");
+      return NextResponse.json(
+        {
+          error: "Internal Server Error",
+          details: "JWT_SECRET is not configured.",
+        },
+        { status: 500 }
+      );
+    }
 
-  return NextResponse.json(
-    JSON.parse(
-      JSON.stringify(drawings, (_, value) =>
-        typeof value === "bigint" ? value.toString() : value
-      )
-    ),
-    { status: 200 }
-  );
+    // Verify JWT token
+    let userId: number;
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      userId = (decoded as { userId: number }).userId;
+      console.log("Authenticated user ID:", userId);
+    } catch (err) {
+      console.error("JWT Verification Error:", err);
+      return NextResponse.redirect("/login");
+    }
+
+    const { searchParams } = new URL(req.url);
+    const categoryIdParam = searchParams.get("categoryId");
+
+    // Build the where clause
+    const where: any = {};
+    if (categoryIdParam) {
+      const categoryId = Number(categoryIdParam);
+      if (!isNaN(categoryId)) {
+        where.category_id = categoryId;
+      }
+    }
+
+    console.log("Prisma where clause:", where);
+
+    // Fetch drawings with aggregations
+    const drawings = await prisma.drawings.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        image_url: true,
+        created_at: true,
+        user: {
+          select: {
+            username: true,
+          },
+        },
+        votes: {
+          select: {
+            vote_type: true,
+            user_id: true,
+          },
+        },
+      },
+      orderBy: { created_at: "desc" }, // Initial ordering by creation date
+    });
+
+    console.log("Fetched drawings:", drawings);
+
+    // Process drawings to include upvoteCount, downvoteCount, and voted
+    const processedDrawings = drawings.map((drawing) => {
+      const upvoteCount =
+        drawing.votes?.filter((v) => v.vote_type === "up").length || 0;
+      const downvoteCount =
+        drawing.votes?.filter((v) => v.vote_type === "down").length || 0;
+      const voted =
+        drawing.votes?.find((v) => v.user_id === userId)?.vote_type || null;
+
+      return {
+        id: drawing.id,
+        name: drawing.name,
+        user: drawing.user?.username || "Unknown",
+        image_url: drawing.image_url,
+        created_at: drawing.created_at,
+        upvoteCount,
+        downvoteCount,
+        netVotes: upvoteCount - downvoteCount, // Calculate net votes
+        voted,
+      };
+    });
+
+    console.log("Processed drawings:", processedDrawings);
+
+    // Sort the drawings by netVotes in descending order
+    processedDrawings.sort((a, b) => b.netVotes - a.netVotes);
+
+    // Optionally, remove the netVotes field if not needed in the response
+    const finalDrawings = processedDrawings.map(
+      ({ netVotes, ...rest }) => rest
+    );
+
+    console.log("Final drawings to return:", finalDrawings);
+
+    return NextResponse.json(finalDrawings, { status: 200 });
+  } catch (error: unknown) {
+    console.error("GET /api/drawings Error:", error);
+
+    // Safely extract error message
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred";
+
+    // Ensure the payload is always an object
+    return NextResponse.json(
+      { error: "Internal Server Error", details: errorMessage },
+      { status: 500 }
+    );
+  }
 }
