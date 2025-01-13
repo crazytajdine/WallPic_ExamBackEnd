@@ -4,10 +4,7 @@ import jwt from "jsonwebtoken";
 
 export async function GET(req: NextRequest) {
   try {
-    console.log("Received GET request for /api/drawings");
-
     const token = req.cookies.get("token")?.value || "";
-    console.log("Token:", token);
 
     if (!token) {
       console.log("No token found, redirecting to /login");
@@ -36,9 +33,7 @@ export async function GET(req: NextRequest) {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       userId = (decoded as { userId: number }).userId;
-      console.log("Authenticated user ID:", userId);
     } catch (err) {
-      console.error("JWT Verification Error:", err);
       return NextResponse.redirect("/login");
     }
 
@@ -53,8 +48,6 @@ export async function GET(req: NextRequest) {
         where.category_id = categoryId;
       }
     }
-
-    console.log("Prisma where clause:", where);
 
     // Fetch drawings with aggregations
     const drawings = await prisma.drawings.findMany({
@@ -79,8 +72,6 @@ export async function GET(req: NextRequest) {
       orderBy: { created_at: "desc" }, // Initial ordering by creation date
     });
 
-    console.log("Fetched drawings:", drawings);
-
     // Process drawings to include upvoteCount, downvoteCount, and voted
     const processedDrawings = drawings.map((drawing) => {
       const upvoteCount =
@@ -103,8 +94,6 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    console.log("Processed drawings:", processedDrawings);
-
     // Sort the drawings by netVotes in descending order
     processedDrawings.sort((a, b) => b.netVotes - a.netVotes);
 
@@ -117,8 +106,6 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(finalDrawings, { status: 200 });
   } catch (error: unknown) {
-    console.error("GET /api/drawings Error:", error);
-
     // Safely extract error message
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred";

@@ -10,23 +10,44 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Moon, Sun, User, Pencil } from 'lucide-react';
+import { Moon, Sun, User, Pencil } from "lucide-react";
+import LogoutButton from "./LogoutButton";
+import axios from "axios";
 
-interface NavbarProps {
-  user: { id: number; username: string; email: string } | null;
-  loading: boolean;
-}
-
-const Navbar: React.FC<NavbarProps> = ({ user, loading }) => {
+const Navbar: React.FC = () => {
   const { theme, setTheme } = useTheme();
+
+  // All hooks are called unconditionally at the top
   const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<{
+    id: number;
+    username: string;
+    email: string;
+  } | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    // Fetch current user
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("/api/auth/me", { withCredentials: true });
+        setUser(res.data.user);
+      } catch (error) {
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
   if (!mounted) {
-    return null;
+    return null; // Conditional rendering happens **after** all hooks
   }
 
   return (
@@ -52,7 +73,10 @@ const Navbar: React.FC<NavbarProps> = ({ user, loading }) => {
               {user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Button
+                      variant="ghost"
+                      className="relative h-8 w-8 rounded-full"
+                    >
                       <User className="h-[1.2rem] w-[1.2rem]" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -65,7 +89,7 @@ const Navbar: React.FC<NavbarProps> = ({ user, loading }) => {
                       <Link href="/profile">Profile</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem>
-                      <Link href="/api/auth/logout">Log out</Link>
+                      <LogoutButton />
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -88,4 +112,3 @@ const Navbar: React.FC<NavbarProps> = ({ user, loading }) => {
 };
 
 export default Navbar;
-

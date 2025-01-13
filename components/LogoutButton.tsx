@@ -1,28 +1,22 @@
 // components/LogoutButton.tsx
-'use client';
+"use client";
 
-import axios from 'axios';
-import { useRouter } from 'next/navigation';
+import axios from "axios";
 
 const LogoutButton = () => {
-  const router = useRouter();
 
   const handleLogout = async () => {
-    if (!confirm('Are you sure you want to logout?')) return;
+    if (!confirm("Are you sure you want to logout?")) return;
 
     try {
-      await axios.post('/api/auth/logout', {}, { withCredentials: true });
-      router.push('/login');
+      await axios.post("/api/auth/logout", {}, { withCredentials: true });
+      window.location.href = "/login";
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error logging out');
+      alert(error.response?.data?.message || "Error logging out");
     }
   };
 
-  return (
-    <button onClick={handleLogout} className="p-2 bg-red-500 text-white rounded">
-      Logout
-    </button>
-  );
+  return <button onClick={handleLogout}>Logout</button>;
 };
 
 export default LogoutButton;

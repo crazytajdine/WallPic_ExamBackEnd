@@ -82,7 +82,6 @@ const MainPage = () => {
 
   // Handler for search from SearchBar
   const handleSearch = (selectedCategoryId: number | null, query: string) => {
-    console.log("Handle Search called with:", selectedCategoryId, query);
     const categoryChanged = selectedCategoryId !== categoryId;
 
     if (categoryChanged) {
@@ -172,6 +171,7 @@ const MainPage = () => {
   }, []);
 
   return (
+    
     <div className="p-4 w-full">
       <div className="flex justify-between items-center mb-4">
         <SearchBar
