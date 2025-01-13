@@ -17,7 +17,6 @@ import {
 import { Label } from "@/components/ui/label";
 
 const LoginPage = () => {
-  const router = useRouter(); // Initialize useRouter
   const [form, setForm] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
