@@ -103,22 +103,6 @@ const CommentsPanel: React.FC<CommentsPanelProps> = ({ drawing, onClose }) => {
             {/* Header with additional buttons */}
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">{drawing.name}</h3>
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => alert("Share functionality not implemented")}
-                  className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                >
-                  Share
-                </button>
-                <button
-                  onClick={() =>
-                    alert("Favorite functionality not implemented")
-                  }
-                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                >
-                  Favorite
-                </button>
-              </div>
             </div>
 
             {/* Drawing Image */}
